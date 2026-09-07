@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-scale: 1;
+  --spacing-scale: 1;
+  --app-bg: #070b14;
+  --card-bg: #0c1322;
+  --card-border: #1b2a4a;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-cyan: #00f0ff;
+  --accent-green: #00ff88;
+  --accent-danger: #ff3366;
+  --btn-scale: 1;
+}
+
+/* Accessibility Theme Modes */
+body.mode-low-vision {
+  --font-scale: 1.25;
+  --spacing-scale: 1.3;
+  --btn-scale: 1.2;
+}
+
+body.mode-dyslexia {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+  line-height: 1.8 !important;
+  letter-spacing: 0.05em !important;
+}
+
+body.mode-high-contrast {
+  --app-bg: #000000 !important;
+  --card-bg: #050505 !important;
+  --card-border: #ffff00 !important;
+  --text-primary: #ffffff !important;
+  --text-secondary: #ffff00 !important;
+  --accent-cyan: #ffff00 !important;
+}
+
+body.mode-soft-cream {
+  --app-bg: #f7f3e8 !important;
+  --card-bg: #ffffff !important;
+  --card-border: #d3c7b2 !important;
+  --text-primary: #2d261e !important;
+  --text-secondary: #5c4f3d !important;
+  --accent-cyan: #0284c7 !important;
+}
+
+body.mode-motor {
+  --btn-scale: 1.35;
+}
+
+/* Custom Cyber Glow Utilities */
+.cyber-glow {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+}
+
+.cyber-glow-danger {
+  box-shadow: 0 0 25px rgba(255, 51, 102, 0.25);
+}
+
+.cyber-glow-success {
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+}
+
+.cyber-grid-bg {
+  background-image: radial-gradient(rgba(0, 240, 255, 0.08) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #070b14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1b2a4a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00f0ff;
+}

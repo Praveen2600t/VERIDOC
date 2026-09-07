@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+
+# Runtime-generated files
+backend/uploads/*
+backend/static/forensics/*
+backend/static/reports/*
+backend/data/*.db
+
+# Local temporary images
+/tmp*.jpg
+/t.jpg
+/temp_*.jpg
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
