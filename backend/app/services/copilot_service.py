@@ -1,4 +1,6 @@
+import re
 from typing import Dict, Any, List, Optional
+
 
 def answer_copilot_query(query: str, verification_context: Dict[str, Any], mode: str = "technical") -> Dict[str, Any]:
     """
@@ -111,8 +113,9 @@ def answer_copilot_query(query: str, verification_context: Dict[str, Any], mode:
         return {"answer": response, "grounded_evidence_count": 1}
 
     # 2C. Direct prompt: "What is the DOB?" / "Date of Birth" / "Year of birth"
-    if "dob" in q or "birth" in q or "age" in q or "yob" in q:
+    if re.search(r"\b(dob|birth|yob|age)\b", q) and not ("simple" in q or "explain" in q):
         response = (
+
             f"### 📅 Date of Birth (DOB) Recognition\n\n"
             f"- **Date of Birth:** **{dob}**\n"
             f"- **Year of Birth:** **{yob}**\n"
@@ -149,7 +152,7 @@ def answer_copilot_query(query: str, verification_context: Dict[str, Any], mode:
     if "mistake" in q or "issues" in q or "problem" in q or "fault" in q:
         if not mistakes:
             # Fall back to positive risk evidence if mistakes list wasn't populated
-            pos = [e for e in evidence_items if e.get("risk_delta", 0) > 0]
+            pos = [e for e in evidence_items if e.get("risk_delta", 0) > 0 or str(e.get("severity", "")).upper() in ("CRITICAL", "WARNING", "HIGH", "ATTENTION")]
             if not pos:
                 return {
                     "answer": "✅ **No Mistakes Found:** All structural validations, mathematical checks, and forensic scans passed cleanly.",
@@ -157,13 +160,14 @@ def answer_copilot_query(query: str, verification_context: Dict[str, Any], mode:
                 }
             mistakes = [
                 {
-                    "severity": e.get("severity", "WARNING"),
-                    "title": e.get("category"),
-                    "description": e.get("description"),
+                    "severity": str(e.get("severity", "WARNING")).upper(),
+                    "title": e.get("category", "Document Discrepancy"),
+                    "description": e.get("description", "Discrepancy detected."),
                     "recommendation": "Review original document carefully."
                 }
                 for e in pos
             ]
+
 
         if is_simple:
             response = "### Issues & Mistakes Identified\n\n"

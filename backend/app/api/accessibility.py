@@ -110,3 +110,18 @@ def analyze_accessibility(req: AccessibilityAnalysisRequest):
         "config": base_config,
         "ai_reasoning": f"Applied verified accessibility matrix for '{need.replace('_', ' ').title()}' to enhance readability and motor comfort."
     }
+
+@router.post("/apply")
+def apply_accessibility(req: AccessibilityAnalysisRequest):
+    """
+    Applies the selected accessibility profile preferences and returns confirmation.
+    """
+    need = (req.user_need or "standard").lower().replace(" ", "_")
+    config = PROFILES.get(need, PROFILES["standard"])
+    return {
+        "status": "applied",
+        "profile": need,
+        "config": config,
+        "message": f"Successfully applied {need.replace('_', ' ').title()} accessibility profile."
+    }
+

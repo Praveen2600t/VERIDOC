@@ -19,10 +19,21 @@ export default {
           neonGreen: '#00ff88',
           danger: '#ff3366',
           warning: '#ffb700'
+        },
+        navy: {
+          DEFAULT: '#1E2761',
+          dark: '#141A46',
+          light: '#2A367E',
+          soft: '#E8ECF8'
+        },
+        cyan: {
+          DEFAULT: '#00C2CB',
+          dark: '#009BA2',
+          light: '#E0F9FB'
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
         dyslexic: ['OpenDyslexic', 'Comic Sans MS', 'sans-serif']
       }
@@ -30,3 +41,4 @@ export default {
   },
   plugins: [],
 }
+

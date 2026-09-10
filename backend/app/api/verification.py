@@ -2,6 +2,7 @@ import os
 import uuid
 from typing import Optional, List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import (
@@ -109,7 +110,8 @@ async def run_verification_pipeline(
 
     # Stage 4: Forensics & AI Tamper Classification
     ela_res = perform_ela(primary_path)
-    tamper_res = tamper_classifier.analyze(primary_path, ela_res)
+    tamper_res = tamper_classifier.analyze(primary_path, ela_res, ocr_data=ocr_res)
+
 
     # Stage 5: Reference Dataset Regional Intelligence
     ref_res = evaluate_regional_intelligence(
@@ -375,3 +377,26 @@ def get_verification_evidence(v_id: str, db: Session = Depends(get_db)):
             for e in evidence_items
         ]
     }
+
+
+@router.get("/verification/{v_id}/report")
+def download_verification_report(v_id: str, db: Session = Depends(get_db)):
+    """
+    Downloads or previews the PDF report for the given verification ID.
+    """
+    report_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "static", "reports"))
+    filename = f"veridoc_report_{v_id}.pdf"
+    filepath = os.path.join(report_dir, filename)
+
+    if not os.path.exists(filepath):
+        vres = db.query(VerificationResult).filter(VerificationResult.verification_id == v_id).first()
+        if not vres:
+            raise HTTPException(status_code=404, detail="Verification record not found.")
+        raise HTTPException(status_code=404, detail="Report PDF not found on disk.")
+
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="application/pdf"
+    )
+

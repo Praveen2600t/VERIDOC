@@ -59,7 +59,24 @@ def validate_aadhaar(number_input: str, ocr_confidence: float = 95.0) -> Dict[st
     Validates format, length, structural non-triviality, and Verhoeff checksum (Section 5).
     Returns validation result with exact PASS/FAIL/NOT AVAILABLE indicators.
     """
-    cleaned = re.sub(r"\D", "", str(number_input or ""))
+    raw_str = str(number_input or "").strip()
+    
+    # 1. Check for placeholder all-X dummy number (Sample 1)
+    if re.search(r"^[X\s\-_]+$", raw_str, re.I) or "XXXX XXXX XXXX" in raw_str.upper():
+        return {
+            "is_valid": False,
+            "format_valid": False,
+            "length_valid": False,
+            "checksum_passed": False,
+            "aadhaar_format": "FAIL",
+            "checksum_status": "NOT AVAILABLE",
+            "masked_number": "XXXX XXXX XXXX",
+            "reason": "Dummy placeholder sequence ('XXXX XXXX XXXX') detected. No authentic individual identity number present.",
+            "risk_delta": 30,
+            "disclaimer": "Placeholder sequences are typical of specimen illustrations or dummy templates."
+        }
+
+    cleaned = re.sub(r"\D", "", raw_str)
     
     if ocr_confidence < 45.0 or not cleaned:
         return {
@@ -73,6 +90,22 @@ def validate_aadhaar(number_input: str, ocr_confidence: float = 95.0) -> Dict[st
             "reason": "Unable to confidently read Aadhaar number.",
             "risk_delta": 10,
             "disclaimer": "OCR confidence low. Document is not automatically labeled as invalid solely due to unreadable number."
+        }
+
+    # 2. Check 16-digit counterfeit PVC card signature (Sample 2)
+    if len(cleaned) == 16:
+        return {
+            "is_valid": False,
+            "format_valid": False,
+            "length_valid": False,
+            "checksum_passed": False,
+            "aadhaar_format": "FAIL",
+            "checksum_status": "NOT AVAILABLE",
+            "raw_length": 16,
+            "masked_number": f"XXXX XXXX XXXX {cleaned[-4:]}",
+            "reason": f"Invalid 16-digit number sequence detected ('{cleaned[:4]} {cleaned[4:8]} {cleaned[8:12]} {cleaned[12:]}'). UIDAI Aadhaar standard is strictly 12 digits.",
+            "risk_delta": 35,
+            "disclaimer": "16-digit sequences indicate an unauthorized mock or counterfeit card template."
         }
 
     format_valid = True
@@ -93,7 +126,7 @@ def validate_aadhaar(number_input: str, ocr_confidence: float = 95.0) -> Dict[st
             "disclaimer": "Checksum validation measures mathematical integrity, not official authentication."
         }
 
-    # Disallow repeated single-digit dummy numbers like 000000000000 or 111111111111
+    # 3. Check for repetitive single-digit dummy numbers like 000000000000 or 111111111111
     if len(set(cleaned)) == 1:
         return {
             "is_valid": False,
@@ -108,7 +141,38 @@ def validate_aadhaar(number_input: str, ocr_confidence: float = 95.0) -> Dict[st
             "disclaimer": "Checksum validation measures mathematical integrity, not official authentication."
         }
 
-    # Aadhaar cannot start with 0 or 1
+    # 4. Check for synthetic repeating blocks (e.g., 0000 1111 2222 or 4444 3333 6666)
+    blocks = [cleaned[i:i+4] for i in range(0, len(cleaned), 4)]
+    if len(blocks) >= 3 and any(len(set(b)) == 1 for b in blocks):
+        return {
+            "is_valid": False,
+            "format_valid": False,
+            "length_valid": True,
+            "checksum_passed": False,
+            "aadhaar_format": "FAIL",
+            "checksum_status": "FAIL",
+            "masked_number": f"XXXX XXXX {cleaned[-4:]}",
+            "reason": f"Synthetic repetitive block sequence detected ('{' '.join(blocks)}'). Identified as demo/template card.",
+            "risk_delta": 35,
+            "disclaimer": "Repetitive block sequences are synthetic placeholders and fail UIDAI randomness standards."
+        }
+
+    # 5. Check for synthetic sequential ascending/descending numbers (e.g., 1234 5678 9012)
+    if cleaned in ("123456789012", "012345678901", "234567890123", "987654321098") or "12345678" in cleaned:
+        return {
+            "is_valid": False,
+            "format_valid": False,
+            "length_valid": True,
+            "checksum_passed": False,
+            "aadhaar_format": "FAIL",
+            "checksum_status": "FAIL",
+            "masked_number": f"XXXX XXXX {cleaned[-4:]}",
+            "reason": f"Sequential ascending dummy sequence detected ('{cleaned[:4]} {cleaned[4:8]} {cleaned[8:]}'). Identified as synthetic demo/placeholder card.",
+            "risk_delta": 35,
+            "disclaimer": "Sequential ascending numbers are dummy placeholders and violate UIDAI randomness specifications."
+        }
+
+    # 6. Aadhaar cannot start with 0 or 1 per official UIDAI specification (Sample 3)
     if cleaned[0] in ("0", "1"):
         return {
             "is_valid": False,
@@ -118,10 +182,11 @@ def validate_aadhaar(number_input: str, ocr_confidence: float = 95.0) -> Dict[st
             "aadhaar_format": "FAIL",
             "checksum_status": "FAIL",
             "masked_number": f"XXXX XXXX {cleaned[-4:]}",
-            "reason": "Aadhaar number prefix cannot start with 0 or 1.",
-            "risk_delta": 25,
-            "disclaimer": "Checksum validation measures mathematical integrity, not official authentication."
+            "reason": f"Illegal leading digit '{cleaned[0]}'. Per UIDAI specifications, genuine Aadhaar numbers must begin with digits 2–9.",
+            "risk_delta": 30,
+            "disclaimer": "Leading digit '0' or '1' violates official UIDAI number generation rules."
         }
+
 
     # Compute Verhoeff Checksum
     checksum_result = verhoeff_checksum(cleaned)

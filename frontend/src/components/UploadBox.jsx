@@ -57,10 +57,17 @@ export default function UploadBox({ onVerify, isProcessing, currentLang = 'en' }
   const loadDemoSample = async (sampleType) => {
     try {
       let filename = 'aadhaar_clean.png';
-      if (sampleType === 'clean_aadhaar') filename = 'aadhaar_clean.png';
+      if (sampleType === 'original_eaadhaar') filename = 'original_eaadhaar_tamil.jpg';
+      else if (sampleType === 'clean_aadhaar') filename = 'aadhaar_clean.png';
       else if (sampleType === 'edited_aadhaar') filename = 'aadhaar_edited.png';
       else if (sampleType === 'clean_pan') filename = 'pan_clean.png';
       else if (sampleType === 'mismatched_pan') filename = 'pan_mismatched.png';
+      else if (sampleType === 'duplicate_silhouette') filename = 'duplicate_1_silhouette_not_original.jpg';
+      else if (sampleType === 'duplicate_16digit') filename = 'duplicate_2_16digit_mock_pvc.jpg';
+      else if (sampleType === 'duplicate_cartoon') filename = 'duplicate_3_cartoon_000011112222.jpg';
+      else if (sampleType === 'duplicate_composite') filename = 'duplicate_4_dualsided_composite.jpg';
+      else if (sampleType === 'duplicate_samarth') filename = 'duplicate_5_samarth_123456789012.jpg';
+
 
       // Fetch file from /sample_docs/
       let res = await fetch(`/sample_docs/${filename}`).catch(() => null);
@@ -276,13 +283,22 @@ export default function UploadBox({ onVerify, isProcessing, currentLang = 'en' }
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
           <span>{t.orSelectDemo}</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <button
+            type="button"
+            onClick={() => loadDemoSample('original_eaadhaar')}
+            className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-emerald-500/40 rounded-lg text-xs transition-all hover:border-emerald-400"
+          >
+            <div className="text-emerald-400 font-bold text-[11px]">✓ Original e-Aadhaar</div>
+            <div className="text-[10px] text-slate-400 truncate">Tamil e-Letter Specimen</div>
+          </button>
+
           <button
             type="button"
             onClick={() => loadDemoSample('clean_aadhaar')}
             className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-cyber-border rounded-lg text-xs transition-all hover:border-emerald-500/40"
           >
-            <div className="text-emerald-400 font-bold text-[11px]">✓ Valid Aadhaar</div>
+            <div className="text-emerald-400 font-bold text-[11px]">✓ Valid Card</div>
             <div className="text-[10px] text-slate-400 truncate">Clean ELA & Checksum</div>
           </button>
 
@@ -313,7 +329,62 @@ export default function UploadBox({ onVerify, isProcessing, currentLang = 'en' }
             <div className="text-[10px] text-slate-400 truncate">Cross-Doc Demographic Mismatch</div>
           </button>
         </div>
+
+        {/* Duplicate Aadhaar Detectors Row */}
+        <div className="mt-3">
+          <div className="text-[11px] font-semibold text-rose-400 flex items-center space-x-1.5 mb-1.5 font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+            <span>Trained Duplicate & Mock Aadhaar Datasets:</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <button
+              type="button"
+              onClick={() => loadDemoSample('duplicate_silhouette')}
+              className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-rose-500/30 hover:border-rose-500/60 rounded-lg text-xs transition-all"
+            >
+              <div className="text-rose-400 font-bold text-[11px]">✕ Silhouette Avatar</div>
+              <div className="text-[10px] text-slate-400 truncate">Gray Vector & XXXX Mask</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadDemoSample('duplicate_16digit')}
+              className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-rose-500/30 hover:border-rose-500/60 rounded-lg text-xs transition-all"
+            >
+              <div className="text-rose-400 font-bold text-[11px]">✕ 16-Digit PVC Mock</div>
+              <div className="text-[10px] text-slate-400 truncate">4444 3333 6666 8888</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadDemoSample('duplicate_cartoon')}
+              className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-rose-500/30 hover:border-rose-500/60 rounded-lg text-xs transition-all"
+            >
+              <div className="text-rose-400 font-bold text-[11px]">✕ Cartoon 0000-1111</div>
+              <div className="text-[10px] text-slate-400 truncate">Clip-Art & Bad Prefix</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadDemoSample('duplicate_samarth')}
+              className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-rose-500/30 hover:border-rose-500/60 rounded-lg text-xs transition-all"
+            >
+              <div className="text-rose-400 font-bold text-[11px]">✕ Sequential 1234</div>
+              <div className="text-[10px] text-slate-400 truncate">1234 5678 9012 Mock</div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => loadDemoSample('duplicate_composite')}
+              className="px-2.5 py-2 text-left bg-[#070b14] hover:bg-slate-800/80 border border-amber-500/30 hover:border-amber-500/60 rounded-lg text-xs transition-all"
+            >
+              <div className="text-amber-400 font-bold text-[11px]">⚠️ Stitched Composite</div>
+              <div className="text-[10px] text-slate-400 truncate">Front & Back Seam Cut</div>
+            </button>
+          </div>
+        </div>
       </div>
+
 
       {/* Multi-Stage Animated Scan Progress */}
       {isProcessing && (

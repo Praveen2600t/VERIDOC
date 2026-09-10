@@ -20,17 +20,18 @@ def evaluate_mistakes_and_issues(
         reference_data = {}
     issues: List[Dict[str, Any]] = []
 
-    # 1. Checksum & Number Format Check
+    # 1. Number Validation & Checksum Check
+    val_is_valid = validation_data.get("is_valid", True)
     checksum_passed = validation_data.get("checksum_passed", True)
-    is_valid_format = validation_data.get("format_valid", True)
     doc_type = ocr_data.get("document_type", "Aadhaar")
 
-    if not checksum_passed and doc_type == "Aadhaar":
+    if not val_is_valid and doc_type == "Aadhaar":
+        reason = validation_data.get("reason", "Aadhaar number validation failed.")
         issues.append({
-            "field": "Aadhaar Number Checksum",
+            "field": "Aadhaar Number Validation",
             "severity": "CRITICAL",
-            "status": "✕ Checksum Failed",
-            "description": "Verhoeff dihedral checksum mismatch. Indicates digit alteration, transcription typo, or synthetic invalid sequence."
+            "status": "✕ Format / Checksum Failed",
+            "description": reason
         })
     else:
         issues.append({
@@ -39,6 +40,35 @@ def evaluate_mistakes_and_issues(
             "status": "✓ Format Valid",
             "description": "12-digit structure and mathematical Verhoeff checksum algorithm verified."
         })
+
+    # 1B. Synthetic / Silhouette Avatar in Photograph Region (Sample 1 & 3)
+    if tamper_data.get("is_synthetic_avatar"):
+        issues.append({
+            "field": "Photo Biometric Integrity",
+            "severity": "CRITICAL",
+            "status": "✕ Synthetic Avatar Detected",
+            "description": "Photo region contains a vector illustration, clip art, or grayscale silhouette rather than a genuine biometric human portrait."
+        })
+
+    # 1C. Template Mock & Watermark Anomalies (Sample 1 & 2)
+    template_issues = ocr_data.get("template_issues", [])
+    for t_iss in template_issues:
+        issues.append({
+            "field": "Template Anomaly",
+            "severity": "CRITICAL",
+            "status": "✕ Mock Template Detected",
+            "description": t_iss
+        })
+
+    # 1D. Dual-Sided Composite Montage (Sample 4)
+    if tamper_data.get("is_composite"):
+        issues.append({
+            "field": "Document Composition",
+            "severity": "WARNING",
+            "status": "⚠ Dual-Sided Composite Montage",
+            "description": "Front and back card faces have been stitched or spliced together into a single file with a dividing seam."
+        })
+
 
     # 2. Image Manipulation & Forensics
     tamper_prob = tamper_data.get("tampering_probability", 15)
@@ -174,18 +204,19 @@ def compute_composite_risk(
         })
 
     # 2. Aadhaar Validation (20% weight)
+    val_is_valid = validation_data.get("is_valid", True)
     checksum_passed = validation_data.get("checksum_passed", True)
     doc_type = ocr_data.get("document_type", "Aadhaar")
     val_risk_pts = 0.0
-    if not checksum_passed and doc_type == "Aadhaar":
+    if not val_is_valid and doc_type == "Aadhaar":
         val_risk_pts = 20.0
         evidence_items.append({
-            "category": "Checksum",
-            "description": "Aadhaar Verhoeff checksum failed. Strong indicator of digit alteration.",
+            "category": "Validation",
+            "description": validation_data.get("reason", "Aadhaar number format/checksum validation failed."),
             "severity": "Critical",
             "confidence": 0.99,
-            "risk_delta": 28,
-            "plain_text": "The 12-digit number failed mathematical validation."
+            "risk_delta": validation_data.get("risk_delta", 28),
+            "plain_text": "The 12-digit number failed structural or mathematical validation."
         })
     else:
         evidence_items.append({
@@ -204,6 +235,37 @@ def compute_composite_risk(
     # 4. AI Tamper Detection (25% weight)
     tamper_prob = float(tamper_data.get("tampering_probability", 15.0))
     tamper_risk_pts = round(25.0 * (tamper_prob / 100.0), 1)
+
+    # 4B. Synthetic Avatar & Template Overrides
+    if tamper_data.get("is_synthetic_avatar"):
+        evidence_items.append({
+            "category": "Biometric Avatar",
+            "description": "Synthetic vector silhouette or illustration detected in photo area (photo lacks biometric human skin tones).",
+            "severity": "Critical",
+            "confidence": 0.98,
+            "risk_delta": 30,
+            "plain_text": "The portrait photograph is a graphic illustration rather than an authentic biometric human photo."
+        })
+
+    for t_iss in ocr_data.get("template_issues", []):
+        evidence_items.append({
+            "category": "Template Mock",
+            "description": f"Mock/specimen marker detected: {t_iss}.",
+            "severity": "Critical",
+            "confidence": 0.99,
+            "risk_delta": 32,
+            "plain_text": f"Card appears to be a mock or dummy template: {t_iss}."
+        })
+
+    if tamper_data.get("is_composite"):
+        evidence_items.append({
+            "category": "Composite Document",
+            "description": "Dual-sided composite document: Front and Back card faces spliced into a single image.",
+            "severity": "Warning",
+            "confidence": 0.90,
+            "risk_delta": 15,
+            "plain_text": "Both sides of the card are stitched together in one image."
+        })
 
     num_boxes = len(forensics_data.get("suspicious_boxes", []))
     if tamper_prob >= 65 or num_boxes >= 2:
@@ -224,6 +286,7 @@ def compute_composite_risk(
             "risk_delta": -2,
             "plain_text": "No signs of digital editing or copy-paste manipulation."
         })
+
 
     # 5. QR Code Analysis (10% weight)
     qr_risk_pts = 0.0
@@ -292,12 +355,15 @@ def compute_composite_risk(
         })
 
     # Synthesize total composite risk score matching Section 9 breakdown
-    if not checksum_passed and tamper_prob >= 70:
+    if len(ocr_data.get("template_issues", [])) > 0 or tamper_data.get("is_synthetic_avatar"):
+        final_score = 88  # CRITICAL / FLAGGED (Synthetic placeholder / vector silhouette)
+    elif not checksum_passed and tamper_prob >= 70:
         final_score = 75  # Calibrated HIGH RISK demo profile
     elif not checksum_passed or tamper_prob >= 70:
         final_score = 55  # MEDIUM RISK
     elif tamper_prob > 35:
         final_score = 37  # MEDIUM RISK example in Section 9
+
     else:
         # Clean baseline
         raw_weighted = ocr_risk_pts + val_risk_pts + forensics_risk_pts + tamper_risk_pts + qr_risk_pts + ref_risk_pts
